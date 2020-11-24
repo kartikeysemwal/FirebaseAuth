@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Firebase Server Auth</title>
+    <link rel="stylesheet" href="./mvp.css" />
+
+    <script src="https://www.gstatic.com/firebasejs/7.14.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.14.1/firebase-auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@rc/dist/js.cookie.min.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/7.6.1/firebase-database.js"></script>
+
+  </head>
+  
+  <body>
+    <main>
+      <section>
+        <form id="signup">
+          <label>Login</label>
+          <input type="text" name="login" />
+          <label>Password</label>
+          <input type="password" name="password" />
+
+          <label>DOB</label>
+          <input type="text" name="dob" />
+          <label>Place Of Birth</label>
+          <input type="test" name="place" />
+
+          <button>Sign up</button>
+        </form>
+      </section>
+
+      <table >
+        <tr>
+          <th><a href = "/">Index</a></th>
+          <th><a href = "/login">Login</a></th>
+        </tr>
+      </table>
+
+
+      <script>
+        var firebaseConfig = {
+            apiKey: "AIzaSyBXeLMmYIeHtW2Dva9UsA4F2wGYbC85Rbs",
+            authDomain: "fir-authweb-6f784.firebaseapp.com",
+            databaseURL: "https://fir-authweb-6f784.firebaseio.com",
+            projectId: "fir-authweb-6f784",
+            storageBucket: "fir-authweb-6f784.appspot.com",
+            messagingSenderId: "19998406253",
+            appId: "1:19998406253:web:5ba0c84a701efb2881f164"
+          };
+
+
+        firebase.initializeApp(firebaseConfig);
+
+        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);
+
+        var database = firebase.database();
+
+        document
+          .getElementById("signup")
+          .addEventListener("submit", (event) => {
+            event.preventDefault();
+            const login = event.target.login.value;
+            const password = event.target.password.value;
+
+            const dob = event.target.dob.value;
+            const place = event.target.place.value;
+
+            firebase
+              .auth()
+              .createUserWithEmailAndPassword(login, password)
+              .then(({ user}) => {
+              
+                let uid = user.uid;
+        
+                let yourdata = { dob: dob,place : place };
+
+                firebase.database().ref('users').child(uid).set(yourdata)
+                  .then((data) => {
+                      console.log('Saved Data', data)
+                  })
+                  .catch((error) => {
+                      console.log('Storing Error', error)
+                  });    
+
+                return user.getIdToken().then((idToken) => {
+                  return fetch("/sessionLogin", {
+                    method: "POST",
+                    headers: {
+                      Accept: "application/json",
+                      "Content-Type": "application/json",
+                      "CSRF-Token": Cookies.get("XSRF-TOKEN"),
+                    },
+                    body: JSON.stringify({ idToken}),
+                  });
+                });
+              })
+              .then(() => {
+                return firebase.auth().signOut();
+              })
+              .then(() => {
+                window.location.assign(`/profile?dob=${dob}&place=${place}`);
+              });
+            return false;
+          });
+      </script>
+    </main>
+  </body>
+</html>
